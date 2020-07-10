@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Creer ou Efface Utilisateur et groupe provenant d'un fichier texte
-# Syntaxe :  Gestion_users <nomDuFichierTexte> <"add" pour ajouter "del" pour effacer
+# Syntaxe :  Gestion_users <nomDuFichierTexte> <"add" pour ajouter "del" pour effacer>
 
 
 checkIdUser(){
@@ -21,8 +21,13 @@ checkFichierExiste (){
 readListeAndAddUsers(){
   while read fullname user pass group
   do
-    groupmod -n "${group}" "${group}" 2>/dev/null || addgroup "${group}"
-    useradd "${user}" -p $(openssl passwd -1 "${pass}") --gid "${group}"
+    if [ `id -u $user 2>/dev/null || echo -1` -eq 0 ]; then 
+      groupmod -n "${group}" "${group}" 2>/dev/null || addgroup "${group}"
+      useradd "${user}" -p $(openssl passwd -1 "${pass}") --gid "${group}"
+      echo création de l'utilisateur "${user}" dans le groupe "${groupe}" OK
+    else
+      echo utilisateur $user existe déjas
+    fi
   done <"${Nom_fichier_liste}"
 }
 
