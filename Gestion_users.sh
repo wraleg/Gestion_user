@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Creer ou Efface Utilisateur et groupe provenant d'un fichier texte
-# Syntaxe :  Gestion_users <nomDuFichierTexte> <"add" pour ajouter "del" pour effacer>
+# Syntaxe :  Gestion_utilisateurs <nomDuFichierTexte> <"add" pour ajouter "del" pour effacer>
 
 
-checkIdUser(){
+checkIdutilisateur(){
   if ! [[ $UID -eq 0 ]] ; then
     echo 'vous devez être root pour lancer le script'
     exit 1
@@ -18,44 +18,56 @@ checkFichierExiste (){
   fi
 }
 
-readListeAndAddUsers(){
-  while read fullname user pass group
+ajoutUtilisateurs(){
+      groupmod -n "${groupe}" "${groupe}" 2>/dev/null || addgroup "${groupe}" &>/dev/null && echo groupe "${groupe}" créé
+      useradd "${utilisateur}" -p $(openssl passwd -1 "${motDePasse}") --gid "${groupe}" &>/dev/null &&  echo création de l\'utilisateur "${utilisateur}" dans le groupe "${groupe}" OK
+      echo -e "$motDePasse\n$motDePasse" | smbpasswd -a -s $utilisateur && echo création de "${utilisateur}" dans Samba     
+}
+
+effaceUtilisateur(){
+      smbpasswd -x "${utilisateur}" &>/dev/null && echo "${utilisateur}" enlevé du LDAP Samba
+      deluser "${utilisateur}" &>/dev/null && echo "${utilisateur}" effacé
+      delgroup "${groupe}" &>/dev/null && echo "${groupe}" effacé
+}
+
+readListeAndAddutilisateurs(){
+  while read fullname utilisateur motDePasse groupe
   do
-    if [ `id -u $user 2>/dev/null || echo -1` -eq 0 ]; then 
-      groupmod -n "${group}" "${group}" 2>/dev/null || addgroup "${group}"
-      useradd "${user}" -p $(openssl passwd -1 "${pass}") --gid "${group}"
-      echo -e "$pass\n$pass" | smbpasswd -a -s $user
-      echo création de l\'utilisateur "${user}" dans le groupe "${groupe}" OK
+#    id "$utilisateur" &>/dev/null && echo "utilisateur $utilisateur valide" || echo "votre nom d'utilisateur $utilisateur n'est pas valide."
+    if $(id "${utilisateur}" &>/dev/null)
+    then
+      echo l\'utilisateur $utilisateur existe déjas
     else
-      echo l\'utilisateur $user existe déjas
+      ajoutUtilisateurs
     fi
   done <"${Nom_fichier_liste}"
 }
 
-readListeAndDelUsers(){
-  # id "$new_user" &>/dev/null && echo "utilisateur valide" || echo "votre nom d'utilisateur n'est pas valide."
-  while read fullname user pass group
+readListeAndDelutilisateurs(){
+  # id "$new_utilisateur" &>/dev/null && echo "utilisateur valide" || echo "votre nom d'utilisateur n'est pas valide."
+  # if id "$new_utilisateur" &>/dev/null
+  # then echo "utilisateur valide"
+  # else echo "votre nom d'utilisateur n'est pas valide."
+  # fi
+  while read fullname utilisateur motDePasse groupe
   do
-    if [ `id -u $user 2>/dev/null` -eq 0 ]; then 
-      deluser "${user}"
-      delgroup "${group}"
-      echo "${group}" effacé
-      echo "${user}" effacé
-      samba-tool user delete "${user}"
+#    id "$utilisateur" &>/dev/null && echo "utilisateur $utilisateur valide" || echo "votre nom d'utilisateur $utilisateur n'est pas valide."
+    if id "$utilisateur" &>/dev/null; then 
+      effaceUtilisateur
     else
-      echo l\'utilisateur "${user}" n\'existe pas
+      echo l\'utilisateur "${utilisateur}" n\'existe pas
     fi
   done<"${Nom_fichier_liste}"
 }
 
 main(){
-  checkIdUser
+  checkIdutilisateur
   Nom_fichier_liste=$1
   checkFichierExiste 
   quoi_faire=$2
   case "${quoi_faire}" in
-    add)  readListeAndAddUsers ;;
-    del)  readListeAndDelUsers ;;
+    add)  readListeAndAddutilisateurs ;;
+    del)  readListeAndDelutilisateurs ;;
     *)    echo "mauvais choix (doit etre add ou del)" ;;
   esac
 }
