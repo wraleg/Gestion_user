@@ -27,18 +27,24 @@ readListeAndAddUsers(){
       echo -e "$pass\n$pass" | smbpasswd -a -s $user
       echo création de l\'utilisateur "${user}" dans le groupe "${groupe}" OK
     else
-      echo utilisateur $user existe déjas
+      echo l\'utilisateur $user existe déjas
     fi
   done <"${Nom_fichier_liste}"
 }
 
 readListeAndDelUsers(){
+  # id "$new_user" &>/dev/null && echo "utilisateur valide" || echo "votre nom d'utilisateur n'est pas valide."
   while read fullname user pass group
   do
-    deluser "${user}"
-    delgroup "${group}"
-    echo "${group}" effacé
-    echo "${user}" effacé
+    if [ `id -u $user 2>/dev/null` -eq 0 ]; then 
+      deluser "${user}"
+      delgroup "${group}"
+      echo "${group}" effacé
+      echo "${user}" effacé
+      samba-tool user delete "${user}"
+    else
+      echo l\'utilisateur "${user}" n\'existe pas
+    fi
   done<"${Nom_fichier_liste}"
 }
 
