@@ -24,7 +24,8 @@ readListeAndAddUsers(){
     if [ `id -u $user 2>/dev/null || echo -1` -eq 0 ]; then 
       groupmod -n "${group}" "${group}" 2>/dev/null || addgroup "${group}"
       useradd "${user}" -p $(openssl passwd -1 "${pass}") --gid "${group}"
-      echo création de l'utilisateur "${user}" dans le groupe "${groupe}" OK
+      echo -e "$pass\n$pass" | smbpasswd -a -s $user
+      echo création de l\'utilisateur "${user}" dans le groupe "${groupe}" OK
     else
       echo utilisateur $user existe déjas
     fi
